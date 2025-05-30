@@ -24,11 +24,11 @@
 // For more information, please refer to <http://unlicense.org>
 
 // External crates imports
-use alloc::vec::Vec;
 
 use polkadot_sdk::*;
 
 use frame_support::{
+    dispatch::DispatchInfo,
     genesis_builder_helper::{build_state, get_preset},
     weights::Weight,
 };
@@ -37,7 +37,7 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-    traits::Block as BlockT,
+    traits::{Block as BlockT, TransactionExtension},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult,
 };
@@ -45,10 +45,18 @@ use sp_version::RuntimeVersion;
 
 // Local module imports
 use super::{
-    AccountId, Balance, Block, ConsensusHook, Executive, InherentDataExt, Nonce, ParachainSystem,
-    Runtime, RuntimeCall, RuntimeGenesisConfig, SessionKeys, System, TransactionPayment,
-    SLOT_DURATION, VERSION,
+    configs::RuntimeBlockWeights, AccountId, Balance, Block, BlockNumber, ConsensusHook,
+    EthExtraImpl, Executive, InherentDataExt, Nonce, ParachainSystem, Revive, Runtime, RuntimeCall,
+    RuntimeGenesisConfig, RuntimeOrigin, SessionKeys, System, TransactionPayment,
+    UncheckedExtrinsic, SLOT_DURATION, VERSION,
 };
+use frame_system::limits::BlockWeights;
+
+use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
+
+use alloc::{vec, vec::Vec};
+use codec::Encode;
+use sp_core::{H160, U256};
 
 // we move some impls outside so we can easily use them with `docify`.
 impl Runtime {
