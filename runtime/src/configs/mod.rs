@@ -44,7 +44,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot,
+	EnsureRoot, EnsureSigned,
 };
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::message_queue::{NarrowOriginToSibling, ParaIdToSibling};
@@ -55,6 +55,9 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_runtime::Perbill;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::BodyId;
+use crate::{MILLI_UNIT, UNIT};
+use frame_support::traits::Nothing;
+
 
 // Local module imports
 use super::{
@@ -63,7 +66,7 @@ use super::{
 	MessageQueue, Nonce, PalletInfo, ParachainSystem, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
 	System, WeightToFee, XcmpQueue, AVERAGE_ON_INITIALIZE_RATIO, EXISTENTIAL_DEPOSIT, HOURS,
-	MAXIMUM_BLOCK_WEIGHT, MICRO_UNIT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+	MAXIMUM_BLOCK_WEIGHT, MICRO_UNIT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION, Timestamp, TransactionPayment,
 };
 use xcm_config::{RelayLocation, XcmOriginToTransactDispatchOrigin};
 
@@ -320,4 +323,65 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_parachain_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_parachain_template::weights::SubstrateWeight<Runtime>;
+}
+
+
+
+const ETH: u128 = 1_000_000_000_000_000_000;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+	(items as Balance * UNIT + (bytes as Balance) * (5 * MILLI_UNIT / 100)) / 10
+}
+
+parameter_types! {
+	pub ChainId: u64 = u32::from(crate::genesis_config_presets::PARACHAIN_ID) as u64;
+	pub const DepositPerItem: Balance = deposit(1, 0);
+	pub const DepositPerByte: Balance = deposit(0, 1);
+	pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+	// 30 percent of storage deposit held for using a code hash.
+	pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+	pub const NativeToEthRatio: u32 = (ETH/UNIT) as u32;
+}
+
+
+impl pallet_revive::Config for Runtime {
+	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+	// No runtime dispatchables are callable from contracts.
+	type CallFilter = Nothing;
+	type ChainExtension = ();
+	type ChainId = ChainId;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type Currency = Balances;
+	type DepositPerByte = DepositPerByte;
+	type DepositPerItem = DepositPerItem;
+	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+	// 1 ETH : 1_000_000 UNIT
+	type NativeToEthRatio = NativeToEthRatio;
+	// 512 MB. Used in an integrity test that verifies the runtime has enough memory.
+	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	// 128 MB. Used in an integrity that verifies the runtime has enough memory.
+	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+	type Time = Timestamp;
+	// Disables access to unsafe host fns such as xcm_send.
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type UploadOrigin = EnsureSigned<Self::AccountId>;
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type WeightPrice = TransactionPayment;
+	type Xcm = ();
+	type EthGasEncoder = ();
+    type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+}
+
+impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
+	type Error = ();
+
+	fn try_from(value: RuntimeCall) -> Result<Self, Self::Error> {
+		match value {
+			RuntimeCall::Revive(call) => Ok(call),
+			_ => Err(()),
+		}
+	}
 }

@@ -73,6 +73,9 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
+
+
+
 /// The extension to the basic transaction logic.
 #[docify::export(template_signed_extra)]
 pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
@@ -313,6 +316,10 @@ mod runtime {
 	// Template
 	#[runtime::pallet_index(50)]
 	pub type TemplatePallet = pallet_parachain_template;
+
+	// Revive
+	#[runtime::pallet_index(60)]
+	pub type Revive = pallet_revive;
 }
 
 #[docify::export(register_validate_block)]
@@ -320,3 +327,4 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	Runtime = Runtime,
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
+
