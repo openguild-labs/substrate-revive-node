@@ -85,7 +85,7 @@ Link: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer
 polkadot-sdk = { workspace = true, features = [..., "pallet-revive"], default-features = false }
 ```
 
-Reference: https://github.com/openguild-labs/substrate-node-revive/commit/2c1bd2d0966331c9f0cd9e5a2db2f0f7fbdbae25
+Reference: https://github.com/openguild-labs/substrate-revive-node/commit/2c1bd2d0966331c9f0cd9e5a2db2f0f7fbdbae25
 
 ### Step 2: Add `pallet-revive` in  runtime 
 
@@ -158,7 +158,7 @@ impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
 	}
 }
 ```
-Reference: https://github.com/openguild-labs/substrate-node-revive/commit/f6a0b5feb8516f0a8061e692b367ed0cb46e500a
+Reference: https://github.com/openguild-labs/substrate-revive-node/commit/f6a0b5feb8516f0a8061e692b367ed0cb46e500a
 
 
 ### Step 3: Convert `eth` transaction to extrinsic substrate type 
@@ -196,7 +196,7 @@ pub type UncheckedExtrinsic =
 > **_NOTE:_**  Unchecked Extrinsic  : these are signed transactions that require some validation check before they can be accepted in the transaction pool. Any unchecked extrinsic contains the signature for the data being sent plus some extra data.
 
 
-Reference: https://github.com/openguild-labs/substrate-node-revive/commit/59dcf99b2c8328d661d7fa84ab863e5a09a71965
+Reference: https://github.com/openguild-labs/substrate-revive-node/commit/59dcf99b2c8328d661d7fa84ab863e5a09a71965
 
 
 
@@ -214,11 +214,11 @@ Reference: https://github.com/openguild-labs/substrate-node-revive/commit/59dcf9
 + Get on-chain storage
 + Trace  
 
-Reference: https://github.com/openguild-labs/substrate-node-revive/commit/328bdf3b79b691de0e12da72270379097592b686
+Reference: https://github.com/openguild-labs/substrate-revive-node/commit/328bdf3b79b691de0e12da72270379097592b686
 
 ### Step 5: Fix bug 
 
-Reference : https://github.com/openguild-labs/substrate-node-revive/commit/72ccd3bdba2d6ef8469e057e275b9df8bdcb98e2
+Reference : https://github.com/openguild-labs/substrate-revive-node/commit/72ccd3bdba2d6ef8469e057e275b9df8bdcb98e2
 
 
 
