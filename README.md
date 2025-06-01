@@ -1,6 +1,11 @@
 <div align="center">
 
-# Polkadot SDK's Parachain Template
+# Tutorial: Configuring pallet-revive on a Substrate node 
+
+## Objectives
+
+Teach developers how to integrate and configure pallet-revive in a Substrate-based node (such as Asset Hub) to enable live EVM debugging capabilities
+
 
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_White.png#gh-dark-mode-only"/>
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_Black.png#gh-light-mode-only"/>
@@ -13,49 +18,16 @@
 
 ## Table of Contents
 
-- [Intro](#intro)
+- [Building and running the custom node locally](#run-a-node)
 
-- [Template Structure](#template-structure)
+- [How to add pallet-revive on runtime](#pallet-revive)
 
-- [Getting Started](#getting-started)
+- [Step by step how to deploy and interact solidity smart contract on PolkaVM ](#getting-started)
 
-- [Starting a Development Chain](#starting-a-development-chain)
 
-  - [Omni Node](#omni-node-prerequisites)
-  - [Zombienet setup with Omni Node](#zombienet-setup-with-omni-node)
-  - [Parachain Template Node](#parachain-template-node)
-  - [Connect with the Polkadot-JS Apps Front-End](#connect-with-the-polkadot-js-apps-front-end)
-  - [Takeaways](#takeaways)
+## Building and running the custom node locally
 
-- [Runtime development](#runtime-development)
-- [Contributing](#contributing)
-- [Getting Help](#getting-help)
-
-## Intro
-
-- ⏫ This template provides a starting point to build a [parachain](https://wiki.polkadot.network/docs/learn-parachains).
-
-- ☁️ It is based on the
-  [Cumulus](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/polkadot_sdk/cumulus/index.html) framework.
-
-- 🔧 Its runtime is configured with a single custom pallet as a starting point, and a handful of ready-made pallets
-  such as a [Balances pallet](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/index.html).
-
-- 👉 Learn more about parachains [here](https://wiki.polkadot.network/docs/learn-parachains)
-
-## Template Structure
-
-A Polkadot SDK based project such as this one consists of:
-
-- 🧮 the [Runtime](./runtime/README.md) - the core logic of the parachain.
-- 🎨 the [Pallets](./pallets/README.md) - from which the runtime is constructed.
-- 💿 a [Node](./node/README.md) - the binary application, not part of the project default-members list and not compiled unless
-  building the project with `--workspace` flag, which builds all workspace members, and is an alternative to
-  [Omni Node](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/omni_node/index.html).
-
-## Getting Started
-
-- 🦀 The template is using the Rust language.
+### Step 1: Install Rust 
 
 - 👉 Check the
   [Rust installation instructions](https://www.rust-lang.org/tools/install) for your system.
@@ -63,203 +35,263 @@ A Polkadot SDK based project such as this one consists of:
 - 🛠️ Depending on your operating system and Rust version, there might be additional
   packages required to compile this template - please take note of the Rust compiler output.
 
-Fetch parachain template code:
+### Step 2: Fetch parachain template code
 
 ```sh
-git clone https://github.com/paritytech/polkadot-sdk-parachain-template.git parachain-template
-
-cd parachain-template
+git clone https://github.com/paritytech/polkadot-sdk-parachain-template.git
 ```
 
-## Starting a Development Chain
-
-The parachain template relies on a hardcoded parachain id which is defined in the runtime code
-and referenced throughout the contents of this file as `{{PARACHAIN_ID}}`. Please replace
-any command or file referencing this placeholder with the value of the `PARACHAIN_ID` constant:
-
-```rust,ignore
-pub const PARACHAIN_ID: u32 = 1000;
-```
-
-### Omni Node Prerequisites
-
-[Omni Node](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/omni_node/index.html) can
-be used to run the parachain template's runtime. `polkadot-omni-node` binary crate usage is described at a high-level
-[on crates.io](https://crates.io/crates/polkadot-omni-node).
-
-#### Install `polkadot-omni-node`
-
-Please see the installation section at [`crates.io/omni-node`](https://crates.io/crates/polkadot-omni-node).
-
-#### Build `parachain-template-runtime`
+### Step 3: Build the project 
 
 ```sh
-cargo build --profile production
+cargo build --release 
 ```
 
-#### Install `staging-chain-spec-builder`
-
-Please see the installation section at [`crates.io/staging-chain-spec-builder`](https://crates.io/crates/staging-chain-spec-builder).
-
-#### Use `chain-spec-builder` to generate the `chain_spec.json` file
+### Step 4: Install `polkadot-omni-node`
 
 ```sh
-chain-spec-builder create --relay-chain "rococo-local" --para-id {{PARACHAIN_ID}} --runtime \
+cargo install --locked polkadot-omni-node@0.5.0
+```
+
+### Step 5:  Install `staging-chain-spec-builder`
+```sh
+cargo install --locked staging-chain-spec-builder@10.0.0 
+```
+
+
+### Step 6:  Use `chain-spec-builder` to generate the `chain_spec.json` file
+
+```sh
+chain-spec-builder create --relay-chain "rococo-local" --para-id 1000 --runtime \
     target/release/wbuild/parachain-template-runtime/parachain_template_runtime.wasm named-preset development
 ```
 
-**Note**: the `relay-chain` and `para-id` flags are mandatory information required by
-Omni Node, and for parachain template case the value for `para-id` must be set to `{{PARACHAIN_ID}}`, since this
-is also the value injected through [ParachainInfo](https://docs.rs/staging-parachain-info/0.17.0/staging_parachain_info/)
-pallet into the `parachain-template-runtime`'s storage. The `relay-chain` value is set in accordance
-with the relay chain ID where this instantiation of parachain-template will connect to.
-
-#### Run Omni Node
-
-Start Omni Node with the generated chain spec. We'll start it in development mode (without a relay chain config), producing
-and finalizing blocks based on manual seal, configured below to seal a block with each second.
+### Step 7:  Run Omni Node
 
 ```bash
-polkadot-omni-node --chain <path/to/chain_spec.json> --dev --dev-block-time 1000
+polkadot-omni-node --chain chain_spec.json --dev --dev-block-time 1000
 ```
 
-However, such a setup is not close to what would run in production, and for that we need to setup a local
-relay chain network that will help with the block finalization. In this guide we'll setup a local relay chain
-as well. We'll not do it manually, by starting one node at a time, but we'll use [zombienet](https://paritytech.github.io/zombienet/intro.html).
+### Step 8: Go to Polkadot Explorer JS with local node 
 
-Follow through the next section for more details on how to do it.
+Link: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer
 
-### Zombienet setup with Omni Node
 
-Assuming we continue from the last step of the previous section, we have a chain spec and we need to setup a relay chain.
-We can install `zombienet` as described [here](https://paritytech.github.io/zombienet/install.html#installation), and
-`zombienet-omni-node.toml` contains the network specification we want to start.
+## How to add pallet-revive on runtime
 
-#### Relay chain prerequisites
+### Step 1: Add `pallet-revive` package in `Cargo.toml` 
 
-Download the `polkadot` (and the accompanying `polkadot-prepare-worker` and `polkadot-execute-worker`) binaries from
-[Polkadot SDK releases](https://github.com/paritytech/polkadot-sdk/releases). Then expose them on `PATH` like so:
+```rust
+polkadot-sdk = { workspace = true, features = [..., "pallet-revive"], default-features = false }
+```
+
+Reference: https://github.com/CocDap/substrate-node-revive/commit/2c1bd2d0966331c9f0cd9e5a2db2f0f7fbdbae25
+
+### Step 2: Add `pallet-revive` in  runtime 
+
++ Define `pallet-revive` in `construct runtime` 
+```rust
+	// Revive
+	#[runtime::pallet_index(60)]Add commentMore actions
+	pub type Revive = pallet_revive;
+```
+
++ Implement `pallet-revive` runtime for main Runtime 
+
+```rust
+const ETH: u128 = 1_000_000_000_000_000_000;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+	(items as Balance * UNIT + (bytes as Balance) * (5 * MILLI_UNIT / 100)) / 10
+}
+
+parameter_types! {Add commentMore actions
+	pub ChainId: u64 = u32::from(crate::genesis_config_presets::PARACHAIN_ID) as u64;
+	pub const DepositPerItem: Balance = deposit(1, 0);
+	pub const DepositPerByte: Balance = deposit(0, 1);
+	pub const DefaultDepositLimit: Balance = deposit(1024, 1024 * 1024);
+	// 30 percent of storage deposit held for using a code hash.
+	pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+	pub const NativeToEthRatio: u32 = (ETH/UNIT) as u32;
+}
+
+
+impl pallet_revive::Config for Runtime {
+	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+	// No runtime dispatchables are callable from contracts.
+	type CallFilter = Nothing;
+	type ChainExtension = ();
+	type ChainId = ChainId;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type Currency = Balances;
+	type DepositPerByte = DepositPerByte;
+	type DepositPerItem = DepositPerItem;
+	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+	// 1 ETH : 1_000_000 UNIT
+	type NativeToEthRatio = NativeToEthRatio;
+	// 512 MB. Used in an integrity test that verifies the runtime has enough memory.
+	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	// 128 MB. Used in an integrity that verifies the runtime has enough memory.
+	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+	type Time = Timestamp;
+	// Disables access to unsafe host fns such as xcm_send.
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type UploadOrigin = EnsureSigned<Self::AccountId>;
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type WeightPrice = TransactionPayment;
+	type Xcm = ();
+	type EthGasEncoder = ();
+    type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+}
+
+impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
+	type Error = ();
+
+	fn try_from(value: RuntimeCall) -> Result<Self, Self::Error> {
+		match value {
+			RuntimeCall::Revive(call) => Ok(call),
+			_ => Err(()),
+		}
+	}
+}
+```
+Reference: https://github.com/CocDap/substrate-node-revive/commit/f6a0b5feb8516f0a8061e692b367ed0cb46e500a
+
+
+### Step 3: Convert `eth` transaction to extrinsic substrate type 
+
+```rust
+/// EthExtra converts an unsigned Call::eth_transact into a CheckedExtrinsic.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EthExtraImpl;
+
+impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
+    type Config = Runtime;
+    type Extension = TxExtension;
+
+    fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
+        (
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
+            frame_system::CheckSpecVersion::<Runtime>::new(),
+            frame_system::CheckTxVersion::<Runtime>::new(),
+            frame_system::CheckGenesis::<Runtime>::new(),
+            frame_system::CheckMortality::from(generic::Era::Immortal),
+            frame_system::CheckNonce::<Runtime>::from(nonce),
+            frame_system::CheckWeight::<Runtime>::new(),
+            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+        )
+            .into()
+    }
+}
+
+/// Unchecked extrinsic type as expected by this runtime.
+pub type UncheckedExtrinsic =
+    pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
+
+```
+> **_NOTE:_**  Unchecked Extrinsic  : these are signed transactions that require some validation check before they can be accepted in the transaction pool. Any unchecked extrinsic contains the signature for the data being sent plus some extra data.
+
+
+Reference: https://github.com/CocDap/substrate-node-revive/commit/59dcf99b2c8328d661d7fa84ab863e5a09a71965
+
+
+
+
+### Step 4: Add revive runtime API
+
++ Get evm balance 
++ Get block gas limit 
++ Get gas price 
++ Get nonce 
++ `eth_transact` 
++ `call` 
++ `instantiate` 
++ Upload code 
++ Get on-chain storage
++ Trace  
+
+Reference: https://github.com/CocDap/substrate-node-revive/commit/328bdf3b79b691de0e12da72270379097592b686
+
+### Step 5: Fix bug 
+
+Reference : https://github.com/CocDap/substrate-node-revive/commit/72ccd3bdba2d6ef8469e057e275b9df8bdcb98e2
+
+
+
+## Step by step how to deploy and interact solidity smart contract on PolkaVM
+
+### Step 1: Install `revive-eth-rpc` 
 
 ```sh
-export PATH="$PATH:<path/to/binaries>"
+cargo install pallet-revive-eth-rpc@0.4.0
 ```
 
-#### Update `zombienet-omni-node.toml` with a valid chain spec path
-
-To simplify the process of using the parachain-template with zombienet and Omni Node, we've added a pre-configured
-development chain spec (dev_chain_spec.json) to the parachain template. The zombienet-omni-node.toml file of this
-template points to it, but you can update it to an updated chain spec generated on your machine. To generate a
-chain spec refer to [staging-chain-spec-builder](https://crates.io/crates/staging-chain-spec-builder)
-
-Then make the changes in the network specification like so:
-
-```toml
-# ...
-[[parachains]]
-id = "<PARACHAIN_ID>"
-chain_spec_path = "<TO BE UPDATED WITH A VALID PATH>"
-# ...
-```
-
-#### Start the network
+### Step 2: Run `substrate-revive-node` and `revive-eth-rpc` in dev mode 
 
 ```sh
-zombienet --provider native spawn zombienet-omni-node.toml
+polkadot-omni-node --chain chain_spec.json --dev -lruntime::revive=debug --dev-block-time 1000
 ```
 
-### Parachain Template Node
 
-As mentioned in the `Template Structure` section, the `node` crate is optionally compiled and it is an alternative
-to `Omni Node`. Similarly, it requires setting up a relay chain, and we'll use `zombienet` once more.
-
-#### Install the `parachain-template-node`
+### Step 3: Check RPC 
 
 ```sh
-cargo install --path node
+curl -X POST http://127.0.0.1:8545 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "method":"eth_getBlockByNumber",
+    "params":["latest", false],
+    "id":1
+  }'
 ```
 
-#### Setup and start the network
+Result: 
 
-For setup, please consider the instructions for `zombienet` installation [here](https://paritytech.github.io/zombienet/install.html#installation)
-and [relay chain prerequisites](#relay-chain-prerequisites).
-
-We're left just with starting the network:
-
-```sh
-zombienet --provider native spawn zombienet.toml
+```bash
+{"jsonrpc":"2.0","id":1,"result":{"baseFeePerGas":"0x3e8","difficulty":"0x0","extraData":"0x","gasLimit":"0xab87c85a2e8","gasUsed":"0x0","hash":"0x79ff71b978bab8f2e4cd3d6d3e8163d8869427d7d5061846f38c0cc3a67bb453","logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","miner":"0x0000000000000000000000000000000000000000","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","nonce":"0x0000000000000000","number":"0x3b9","parentHash":"0x33c1cdc034d00f814119c3fd2f10e5a31b2b8e7aec6d5689739cd3a3d9e0982f","receiptsRoot":"0x4a9a161b4ff8849269a6a75e08fbbbbc0ca80eede262c8bf035bdbfe6dc5749a","sha3Uncles":"0x0000000000000000000000000000000000000000000000000000000000000000","size":"0x0","stateRoot":"0x45145e2f329608888ec06ea39fcecade07ee59903060e65290698e0e9df4e4a7","timestamp":"0x0","transactions":[],"transactionsRoot":"0x4a9a161b4ff8849269a6a75e08fbbbbc0ca80eede262c8bf035bdbfe6dc5749a","uncles":[]}}
 ```
 
-### Connect with the Polkadot-JS Apps Front-End
+### Step 4: Add local network in metamask 
 
-- 🌐 You can interact with your local node using the
-  hosted version of the Polkadot/Substrate Portal:
-  [relay chain](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944)
-  and [parachain](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9988).
+| Properties | Network Details |
+|------------|----------------|
+| Network name | Substrate Node Revive |
+| RPC | http://127.0.0.1:8545 |
+| Chain ID | 1000 |
+| Symbol | REVIVE |
 
-- 🪐 A hosted version is also
-  available on [IPFS](https://dotapps.io/).
 
-- 🧑‍🔧 You can also find the source code and instructions for hosting your own instance in the
-  [`polkadot-js/apps`](https://github.com/polkadot-js/apps) repository.
 
-### Takeaways
+### Step 5: Mapping Substrate's Account to ETH account 
 
-Development parachains:
+Go to Polkadot JS Explorer -> Developer -> Choose `Revive` pallet -> Choose `mapAccount` extrinsic
 
-- 🔗 Connect to relay chains, and we showcased how to connect to a local one.
-- 🧹 Do not persist the state.
-- 💰 Are preconfigured with a genesis state that includes several prefunded development accounts.
-- 🧑‍⚖️ Development accounts are used as validators, collators, and `sudo` accounts.
+> **_NOTE:_**  Alice's Substrate PrivateKey ( dev purpose)  : 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
 
-## Runtime development
+### Step 6: Transfer funds to ETH Account using Polkadot JS explorer 
 
-We recommend using [`chopsticks`](https://github.com/AcalaNetwork/chopsticks) when the focus is more on the runtime
-development and `OmniNode` is enough as is.
 
-### Install chopsticks
+Go to Polkadot JS Explorer -> Developer -> Choose `Revive` pallet -> Choose `call` extrinsic
 
-To use `chopsticks`, please install the latest version according to the installation [guide](https://github.com/AcalaNetwork/chopsticks?tab=readme-ov-file#install).
+| Params  |  Value |
+|------------|----------------|
+| dest | Is your ETH address  |
+| value | 1000000000000000(1000 REVIVE) |
+| storageDepositLimit | 1000000000000000 |
+| data | 0x |
 
-### Build a raw chain spec
+### Step 7: Deploy simple smart contract using Remix Polkadot 
 
-Build the `parachain-template-runtime` as mentioned before in this guide and use `chain-spec-builder`
-again but this time by passing `--raw-storage` flag:
+Link: https://remix.polkadot.io/#lang=en&optimize=false&runs=200&evmVersion=null&version=soljson-v0.8.28+commit.7893614a-revive-0.1.0-dev.12.js
 
-```sh
-chain-spec-builder create --raw-storage --relay-chain "rococo-local" --para-id {{PARACHAIN_ID}} --runtime \
-    target/release/wbuild/parachain-template-runtime/parachain_template_runtime.wasm named-preset development
-```
 
-### Start `chopsticks` with the chain spec
 
-```sh
-npx @acala-network/chopsticks@latest --chain-spec <path/to/chain_spec.json>
-```
 
-### Alternatives
 
-`OmniNode` can be still used for runtime development if using the `--dev` flag, while `parachain-template-node` doesn't
-support it at this moment. It can still be used to test a runtime in a full setup where it is started alongside a
-relay chain network (see [Parachain Template node](#parachain-template-node) setup).
 
-## Contributing
 
-- 🔄 This template is automatically updated after releases in the main [Polkadot SDK monorepo](https://github.com/paritytech/polkadot-sdk).
-
-- ➡️ Any pull requests should be directed to this [source](https://github.com/paritytech/polkadot-sdk/tree/master/templates/parachain).
-
-- 😇 Please refer to the monorepo's
-  [contribution guidelines](https://github.com/paritytech/polkadot-sdk/blob/master/docs/contributor/CONTRIBUTING.md) and
-  [Code of Conduct](https://github.com/paritytech/polkadot-sdk/blob/master/docs/contributor/CODE_OF_CONDUCT.md).
-
-## Getting Help
-
-- 🧑‍🏫 To learn about Polkadot in general, [docs.Polkadot.com](https://docs.polkadot.com/) website is a good starting point.
-
-- 🧑‍🔧 For technical introduction, [here](https://github.com/paritytech/polkadot-sdk#-documentation) are
-  the Polkadot SDK documentation resources.
-
-- 👥 Additionally, there are [GitHub issues](https://github.com/paritytech/polkadot-sdk/issues) and
-  [Substrate StackExchange](https://substrate.stackexchange.com/).
-- 👥You can also reach out on the [Official Polkdot discord server](https://polkadot-discord.w3f.tools/)
-- 🧑Reach out on [Telegram](https://t.me/substratedevs) for more questions and discussions
